@@ -1,13 +1,23 @@
 """QuietCool BLE number entities — smart-mode thresholds and timer duration.
 
-Smart-mode (TH) thresholds:
+These thresholds control TH (Thermostat+Humidity) smart mode. Per the QuietCool
+Smart Control app's own help text (authoritative — the wire field names are the
+inverse of what they sound like):
   GetTemp_H  — fan activates (HIGH speed on 2-speed fans) above this
   GetTemp_M  — fan switches from LOW to HIGH speed above this (2-speed fans)
   GetTemp_L  — fan deactivates below this
-  GetHum_H   — fan activates when humidity rises above this
-Read from GetParameter and written via SetTempHumidity, which requires all six
-fields (H/M/L for temp, H/L/Range for hum); unchanged fields are passed through
-from the current coordinator.fan_parameters.
+  GetHum_H   — "Turn Fan Off": fan turns OFF at/above this humidity  (factory 90)
+  GetHum_L   — "Turn Fan On":  fan turns ON above this humidity, regardless of
+               temperature (factory 70). 255 = feature OFF/disabled.
+  GetHum_Range — fan speed used when humidity is what turns the fan on
+               (exposed as the "Humidity Fan Speed" select).
+
+Smart-mode check order (from the app help): Turn Fan Off (hum_h) is checked FIRST as
+a hard cutout, then temperature, then Turn Fan On (hum_l).
+
+All threshold values are read from GetParameter and written via SetTempHumidity.
+SetTempHumidity requires all six fields (H/M/L for temp, H/L/Range for hum);
+unchanged fields are passed through from the current coordinator.fan_parameters.
 
 Timer duration (GetHour / GetMinute):
   The duration a Timer-mode activation counts down from. Read from GetParameter
@@ -34,6 +44,20 @@ from .coordinator import QuietCoolBLECoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+# 255 is the device sentinel meaning "humidity turn-on feature is OFF".
+HUM_L_DISABLED = 255
+
+
+async def _maybe_reassert_th(coordinator: QuietCoolBLECoordinator) -> None:
+    """Re-assert TH if the fan is already in TH so a parameter change takes effect.
+
+    The fan only re-runs its smart-mode decision on a SetMode command.
+    """
+    state = coordinator.fan_state
+    if state is not None and state.mode == api.FanMode.TH:
+        protocol = coordinator.fan_info.protocol
+        await coordinator.async_execute(lambda client: api.set_mode_th(client, protocol=protocol))
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -47,20 +71,17 @@ async def async_setup_entry(
             QuietCoolTempMedNumber(coordinator),
             QuietCoolTempLowNumber(coordinator),
             QuietCoolHumHighNumber(coordinator),
+            QuietCoolHumLowNumber(coordinator),
             QuietCoolTimerHoursNumber(coordinator),
             QuietCoolTimerMinutesNumber(coordinator),
         ]
     )
 
 
-class _QuietCoolNumberBase(
+class _QuietCoolThresholdBase(
     CoordinatorEntity[QuietCoolBLECoordinator], NumberEntity
 ):
-    """Shared base for all QuietCool number entities.
-
-    All of them read from coordinator.fan_parameters (GetParameter), so they
-    share the same device grouping and availability.
-    """
+    """Base class for smart-mode threshold number entities."""
 
     _attr_has_entity_name = True
     _attr_mode = NumberMode.BOX
@@ -85,10 +106,6 @@ class _QuietCoolNumberBase(
     def available(self) -> bool:
         return self.coordinator.fan_parameters is not None
 
-
-class _QuietCoolThresholdBase(_QuietCoolNumberBase):
-    """Base class for smart-mode threshold number entities."""
-
     def _write_thresholds(self, **overrides: Any) -> Any:
         """Build a coroutine that calls SetTempHumidity with all six fields.
 
@@ -108,6 +125,16 @@ class _QuietCoolThresholdBase(_QuietCoolNumberBase):
         }
         merged.update(overrides)
         return lambda client: api.set_temp_humidity(client, protocol=protocol, **merged)
+
+    async def _apply(self, **overrides: Any) -> None:
+        """Write the changed field(s), then re-assert TH so the change takes effect."""
+        params = self.coordinator.fan_parameters
+        if params is None:
+            return
+        await self.coordinator.async_execute(self._write_thresholds(**overrides))
+        await _maybe_reassert_th(self.coordinator)
+        self.coordinator.fan_parameters = dataclasses.replace(params, **overrides)
+        self.async_write_ha_state()
 
 
 class QuietCoolTempHighNumber(_QuietCoolThresholdBase):
@@ -130,13 +157,7 @@ class QuietCoolTempHighNumber(_QuietCoolThresholdBase):
         return float(self.coordinator.fan_parameters.temp_h)
 
     async def async_set_native_value(self, value: float) -> None:
-        params = self.coordinator.fan_parameters
-        if params is None:
-            return
-        new_val = int(value)
-        await self.coordinator.async_execute(self._write_thresholds(temp_h=new_val))
-        self.coordinator.fan_parameters = dataclasses.replace(params, temp_h=new_val)
-        self.async_write_ha_state()
+        await self._apply(temp_h=int(value))
 
 
 class QuietCoolTempMedNumber(_QuietCoolThresholdBase):
@@ -159,13 +180,7 @@ class QuietCoolTempMedNumber(_QuietCoolThresholdBase):
         return float(self.coordinator.fan_parameters.temp_m)
 
     async def async_set_native_value(self, value: float) -> None:
-        params = self.coordinator.fan_parameters
-        if params is None:
-            return
-        new_val = int(value)
-        await self.coordinator.async_execute(self._write_thresholds(temp_m=new_val))
-        self.coordinator.fan_parameters = dataclasses.replace(params, temp_m=new_val)
-        self.async_write_ha_state()
+        await self._apply(temp_m=int(value))
 
 
 class QuietCoolTempLowNumber(_QuietCoolThresholdBase):
@@ -174,7 +189,9 @@ class QuietCoolTempLowNumber(_QuietCoolThresholdBase):
     _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.FAHRENHEIT
     _attr_native_min_value = 40
-    _attr_native_max_value = 90
+    # Raised 90 -> 115: device encodes temp_l up to 110/120 like med/high
+    # (app slider caps at 90).
+    _attr_native_max_value = 115
     _attr_native_step = 1
     _attr_name = "Low Temp Threshold"
 
@@ -188,24 +205,23 @@ class QuietCoolTempLowNumber(_QuietCoolThresholdBase):
         return float(self.coordinator.fan_parameters.temp_l)
 
     async def async_set_native_value(self, value: float) -> None:
-        params = self.coordinator.fan_parameters
-        if params is None:
-            return
-        new_val = int(value)
-        await self.coordinator.async_execute(self._write_thresholds(temp_l=new_val))
-        self.coordinator.fan_parameters = dataclasses.replace(params, temp_l=new_val)
-        self.async_write_ha_state()
+        await self._apply(temp_l=int(value))
 
 
 class QuietCoolHumHighNumber(_QuietCoolThresholdBase):
-    """High humidity threshold for TH smart mode (fan turns on above this)."""
+    """Humidity turn-OFF threshold for TH smart mode.
+
+    App label "Turn Fan Off" (factory 90): the fan turns OFF at/above this RH — a
+    high-humidity cutout checked FIRST, so it won't run when ventilating can't help.
+    Device field GetHum_H.
+    """
 
     _attr_device_class = NumberDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_native_min_value = 10
     _attr_native_max_value = 100
     _attr_native_step = 1
-    _attr_name = "High Humidity Threshold"
+    _attr_name = "Humidity Off Threshold"
 
     def __init__(self, coordinator: QuietCoolBLECoordinator) -> None:
         super().__init__(coordinator, "hum_h")
@@ -217,16 +233,39 @@ class QuietCoolHumHighNumber(_QuietCoolThresholdBase):
         return float(self.coordinator.fan_parameters.hum_h)
 
     async def async_set_native_value(self, value: float) -> None:
+        await self._apply(hum_h=int(value))
+
+
+class QuietCoolHumLowNumber(_QuietCoolThresholdBase):
+    """Humidity turn-ON threshold for TH smart mode.
+
+    App label "Turn Fan On" (factory 70): the fan turns ON above this RH regardless
+    of temperature, running at the humidity speed range. Device field GetHum_L; the
+    device stores 255 when the feature is OFF. We surface 255 as None (unknown) rather
+    than a bogus 255%, and writing any 10–100 value enables it.
+    """
+
+    _attr_device_class = NumberDeviceClass.HUMIDITY
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_native_min_value = 10
+    _attr_native_max_value = 100
+    _attr_native_step = 1
+    _attr_name = "Humidity On Threshold"
+
+    def __init__(self, coordinator: QuietCoolBLECoordinator) -> None:
+        super().__init__(coordinator, "hum_l")
+
+    @property
+    def native_value(self) -> float | None:
         params = self.coordinator.fan_parameters
-        if params is None:
-            return
-        new_val = int(value)
-        await self.coordinator.async_execute(self._write_thresholds(hum_h=new_val))
-        self.coordinator.fan_parameters = dataclasses.replace(params, hum_h=new_val)
-        self.async_write_ha_state()
+        if params is None or params.hum_l == HUM_L_DISABLED:
+            return None
+        return float(params.hum_l)
 
+    async def async_set_native_value(self, value: float) -> None:
+        await self._apply(hum_l=int(value))
 
-class _QuietCoolTimerBase(_QuietCoolNumberBase):
+class _QuietCoolTimerBase(_QuietCoolThresholdBase):
     """Base class for the timer-duration number entities (Hours / Minutes)."""
 
     def _write_timer(self, **overrides: Any) -> Any:
@@ -310,3 +349,4 @@ class QuietCoolTimerMinutesNumber(_QuietCoolTimerBase):
             params, timer_minute=new_val
         )
         self.async_write_ha_state()
+
