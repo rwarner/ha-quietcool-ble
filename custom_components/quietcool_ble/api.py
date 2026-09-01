@@ -166,14 +166,19 @@ class FanVersion:
     create_date: str   # e.g. "2023.07.25"
 
 
+# Device sentinel: a threshold field set to 255 means "this tier is disabled".
+# Applies to the humidity turn-on (hum_l) in particular.
+HUM_DISABLED = 255
+
+
 @dataclass(frozen=True, slots=True)
 class FanParameters:
     temp_h: int        # high temp threshold °F (smart mode activates above this)
     temp_m: int        # medium temp threshold °F (2-speed fans: switches from LOW to HIGH)
     temp_l: int        # low temp threshold °F (smart mode deactivates below this)
-    hum_h: int         # high humidity threshold % (smart mode activates above this)
-    hum_l: int         # low humidity threshold % (255 = unused)
-    hum_range: str     # humidity speed range "HIGH" or "LOW"
+    hum_h: int         # "Turn Fan Off" humidity cutout %: fan STOPS at/above this (factory 90)
+    hum_l: int         # "Turn Fan On" humidity trigger %: fan RUNS above this (factory 70; 255 = disabled)
+    hum_range: str     # fan speed for humidity-driven runs, "HIGH" or "LOW" ("MEDIUM" on 3-speed)
     fan_type: str      # "TWO" = 2-speed
     timer_hour: int    # default timer hours
     timer_minute: int  # default timer minutes
@@ -450,7 +455,7 @@ async def get_parameters(
         temp_m=int(resp.get("GetTemp_M", 75)),
         temp_l=int(resp.get("GetTemp_L", 65)),
         hum_h=int(resp.get("GetHum_H", 90)),
-        hum_l=int(resp.get("GetHum_L", 255)),
+        hum_l=int(resp.get("GetHum_L", HUM_DISABLED)),
         hum_range=str(resp.get("GetHum_Range", FanSpeed.LOW)),
         fan_type=str(resp.get("FanType", "TWO")),
         timer_hour=int(resp.get("GetHour", 8)),

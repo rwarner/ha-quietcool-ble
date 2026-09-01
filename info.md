@@ -7,7 +7,7 @@ Native Bluetooth Low Energy integration for QuietCool attic and whole-house fans
 - **Timer duration** — set the run duration from HA (Timer Hours / Timer Minutes); turn-on honors it instead of forcing the firmware's 8-hour default
 - **Smart Mode (TH)** — automatic on/off based on configurable temperature and humidity thresholds
 - **Mode selector** — switch between Idle, Timer, and TH smart mode
-- **Threshold controls** — set High/Medium/Low temp and High humidity setpoints from HA
+- **Threshold controls** — set High/Medium/Low temp thresholds, the humidity turn-off cutout and turn-on trigger, and the humidity fan speed from HA
 - **Temperature sensor** — attic temperature in °F
 - **Humidity sensor** — attic humidity in %
 - **Timer Remaining sensor** — countdown in seconds when in Timer mode

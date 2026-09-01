@@ -316,6 +316,44 @@ class QuietCoolBLECoordinator(ActiveBluetoothDataUpdateCoordinator[None]):
             await self._async_drop_client()
             raise UpdateFailed(f"BLE operation failed: {err}") from err
 
+    async def async_apply_smart_params(self, **overrides: Any) -> None:
+        """Write TH smart-mode params (SetTempHumidity) and re-assert TH atomically.
+
+        Only the field(s) in ``overrides`` change; the rest are taken from the
+        current fan_parameters so unchanged values are preserved (SetTempHumidity
+        rewrites all six). When the fan is already in TH mode, SetMode:TH is
+        re-sent in the SAME operation so the device re-runs its smart-mode
+        decision against the new values immediately — bundled into one
+        async_execute so both writes share a single connection and lock hold
+        rather than racing an idle disconnect between two separate operations.
+
+        Shared by the threshold number entities and the humidity-speed select so
+        the write-then-reassert logic lives in exactly one place. No-op when
+        parameters have not been fetched yet.
+        """
+        params = self.fan_parameters
+        if params is None:
+            return
+        merged = {
+            "temp_h": params.temp_h,
+            "temp_m": params.temp_m,
+            "temp_l": params.temp_l,
+            "hum_h": params.hum_h,
+            "hum_l": params.hum_l,
+            "hum_range": params.hum_range,
+        }
+        merged.update(overrides)
+        protocol = self.fan_info.protocol
+        reassert_th = self.fan_state is not None and self.fan_state.mode == api.FanMode.TH
+
+        async def _op(client: BleakClient) -> None:
+            await api.set_temp_humidity(client, protocol=protocol, **merged)
+            if reassert_th:
+                await api.set_mode_th(client, protocol=protocol)
+
+        await self.async_execute(_op)
+        self.fan_parameters = dataclasses.replace(params, **overrides)
+
     async def _async_drop_client(self) -> None:
         """Tear down the connection after a failed BLE operation.
 

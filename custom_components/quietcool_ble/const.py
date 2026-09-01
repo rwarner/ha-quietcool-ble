@@ -6,6 +6,14 @@ from typing import Final
 DOMAIN: Final = "quietcool_ble"
 PLATFORMS: Final = ["fan", "sensor", "select", "number"]
 
+# FanType tokens (firmware GetParameter "FanType") known to expose a third,
+# medium speed. Deliberately an allowlist: any fan that does NOT explicitly
+# report one of these — 2-speed fans ("TWO"), unknown/garbage values, and older
+# firmware that omits FanType — falls through to Low/High only and can never be
+# shown or sent MEDIUM. Shared by the fan preset and the humidity-speed select so
+# the two platforms can never disagree on what speeds a fan supports.
+THREE_SPEED_FAN_TYPES: Final = frozenset({"THREE"})
+
 # BLE protocol identifiers
 SERVICE_UUID: Final = "000000ff-0000-1000-8000-00805f9b34fb"
 CHAR_UUID: Final = "0000ff01-0000-1000-8000-00805f9b34fb"

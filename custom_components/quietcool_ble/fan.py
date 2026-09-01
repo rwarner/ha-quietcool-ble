@@ -22,7 +22,7 @@ from homeassistant.util.percentage import (
 
 from . import api
 from .api import FanMode, FanSpeed
-from .const import DOMAIN
+from .const import DOMAIN, THREE_SPEED_FAN_TYPES
 from .coordinator import QuietCoolBLECoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,13 +36,6 @@ _PRESET_TO_BLE: dict[str, str] = {
     PRESET_MEDIUM: FanSpeed.MEDIUM,
     PRESET_HIGH: FanSpeed.HIGH,
 }
-
-# FanType tokens (reported by the firmware) known to expose a third, medium speed.
-# Deliberately an allowlist, not a denylist: any fan that does NOT explicitly
-# report one of these — 2-speed fans ("TWO"), unknown/garbage values, and older
-# firmware that omits FanType (parameters None) — falls through to Low/High only
-# and can never be shown or sent MEDIUM.
-_THREE_SPEED_FAN_TYPES: frozenset[str] = frozenset({"THREE"})
 
 
 async def async_setup_entry(
@@ -103,7 +96,7 @@ class QuietCoolFanEntity(CoordinatorEntity[QuietCoolBLECoordinator], FanEntity):
         or sent MEDIUM.
         """
         params = self.coordinator.fan_parameters
-        if params is not None and params.fan_type in _THREE_SPEED_FAN_TYPES:
+        if params is not None and params.fan_type in THREE_SPEED_FAN_TYPES:
             return [PRESET_LOW, PRESET_MEDIUM, PRESET_HIGH]
         return [PRESET_LOW, PRESET_HIGH]
 

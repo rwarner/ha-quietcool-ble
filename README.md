@@ -136,6 +136,7 @@ If you don't have one of those, ignore the field and pair normally. Any string o
 |---|---|---|---|
 | Fan | `fan` | — | On/off, `Low` / `High` speed preset (plus `Medium` on 3-speed fans) |
 | Mode | `select` | — | `Idle` / `Timer` / `TH` (smart mode) |
+| Humidity Fan Speed | `select` | — | Speed used on humidity-driven runs (`Low` / `High`, plus `Medium` on 3-speed) |
 | Fan Speed | `sensor` | — | Physical speed: `Off` / `Low` / `Medium` / `High` |
 | Temperature | `sensor` | °F | Attic temp: `Temp_Sample / 10` |
 | Humidity | `sensor` | % | Attic humidity: direct integer |
@@ -144,7 +145,8 @@ If you don't have one of those, ignore the field and pair normally. Any string o
 | High Temp Threshold | `number` | °F | TH mode activates above this |
 | Medium Temp Threshold | `number` | °F | 2-speed fans switch LOW→HIGH above this |
 | Low Temp Threshold | `number` | °F | TH mode deactivates below this |
-| High Humidity Threshold | `number` | % | TH mode activates above this |
+| Humidity Off Threshold | `number` | % | Fan **stops** at/above this humidity (cutout, checked first) |
+| Humidity On Threshold | `number` | % | Fan **runs** above this humidity regardless of temp (blank = disabled) |
 | Timer Hours | `number` | h | Timer-mode run duration (0–23); setting it doesn't start the fan |
 | Timer Minutes | `number` | min | Timer-mode run duration (0–59); setting it doesn't start the fan |
 
@@ -160,10 +162,15 @@ The **Fan Speed** sensor shows whether the blades are actually spinning (`Off` /
 
 Select **TH** from the Mode dropdown to activate it. Adjust the threshold number entities to match your comfort targets — changes take effect immediately without restarting the fan.
 
+**Humidity works as two separate thresholds** (matching the QuietCool app's "Turn Fan Off" / "Turn Fan On" labels — the wire field names are the inverse of what they sound like):
+- **Humidity Off Threshold** (`GetHum_H`, factory 90%) — a high-humidity **cutout**, checked *first*: at or above this the fan **stops** regardless of temperature, so it won't run when outside air is too damp to help.
+- **Humidity On Threshold** (`GetHum_L`, factory 70%) — the fan **turns on** above this humidity even if the temperature thresholds wouldn't, running at the **Humidity Fan Speed**. Leave blank (device value `255`) to disable; re-disabling requires the QuietCool app.
+
 Example targets for a typical attic fan:
 - High Temp: 85–95°F (fan turns on)
 - Low Temp: 65–75°F (fan turns off)
-- High Humidity: 80–90%
+- Humidity Off (cutout): 80–90%
+- Humidity On (ventilate): 60–70%
 
 ## Automations
 
@@ -330,6 +337,8 @@ Two protocol versions exist depending on firmware:
 ## Changelog
 
 Full release history is in [CHANGELOG.md](CHANGELOG.md). Most recent release:
+
+**v0.2.19** — corrects the humidity smart-mode thresholds (the `GetHum_H` cutout was mislabeled as a turn-on trigger), exposes the missing **Humidity On Threshold** and a **Humidity Fan Speed** select, and raises the Low Temp max to 115°F. Thanks [@evan](https://github.com/evan) ([#16](https://github.com/rwarner/ha-quietcool-ble/pull/16), [#17](https://github.com/rwarner/ha-quietcool-ble/pull/17)).
 
 **v0.2.18** — set the timer duration from Home Assistant: new **Timer Hours** / **Timer Minutes** number entities, and turn-on now honors that duration instead of forcing the firmware's 8-hour default ([#15](https://github.com/rwarner/ha-quietcool-ble/issues/15)).
 

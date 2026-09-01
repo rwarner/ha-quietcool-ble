@@ -23,7 +23,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import api
 from .api import FanMode, FanSpeed
-from .const import DOMAIN
+from .const import DOMAIN, THREE_SPEED_FAN_TYPES
 from .coordinator import QuietCoolBLECoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,16 +31,11 @@ _LOGGER = logging.getLogger(__name__)
 # All known operating modes.  The device may return others; we pass them through.
 FAN_MODES = [FanMode.IDLE, FanMode.TIMER, FanMode.TH]
 
-# Speeds selectable for humidity-driven runs. 2-speed fans ignore MEDIUM.
-HUM_SPEEDS = [FanSpeed.LOW, FanSpeed.MEDIUM, FanSpeed.HIGH]
-
-
-async def _maybe_reassert_th(coordinator: QuietCoolBLECoordinator) -> None:
-    """Re-assert TH if the fan is already in TH so a parameter change takes effect."""
-    state = coordinator.fan_state
-    if state is not None and state.mode == FanMode.TH:
-        protocol = coordinator.fan_info.protocol
-        await coordinator.async_execute(lambda client: api.set_mode_th(client, protocol=protocol))
+# Fan speeds selectable for humidity-driven runs. MEDIUM is offered only on
+# 3-speed fans — the same FanType gate the fan presets use — so a 2-speed fan
+# can never be shown or sent MEDIUM.
+_HUM_SPEEDS_2 = [FanSpeed.LOW, FanSpeed.HIGH]
+_HUM_SPEEDS_3 = [FanSpeed.LOW, FanSpeed.MEDIUM, FanSpeed.HIGH]
 
 
 async def async_setup_entry(
@@ -137,7 +132,6 @@ class QuietCoolHumSpeedSelectEntity(_QuietCoolSelectBase):
     """
 
     _attr_name = "Humidity Fan Speed"
-    _attr_options = HUM_SPEEDS
     _attr_icon = "mdi:fan-speed-1"
 
     def __init__(self, coordinator: QuietCoolBLECoordinator) -> None:
@@ -149,31 +143,25 @@ class QuietCoolHumSpeedSelectEntity(_QuietCoolSelectBase):
         return self.coordinator.fan_parameters is not None
 
     @property
+    def options(self) -> list[str]:
+        """Offer MEDIUM only on 3-speed fans, mirroring the fan preset gate."""
+        params = self.coordinator.fan_parameters
+        if params is not None and params.fan_type in THREE_SPEED_FAN_TYPES:
+            return _HUM_SPEEDS_3
+        return _HUM_SPEEDS_2
+
+    @property
     def current_option(self) -> str | None:
         params = self.coordinator.fan_parameters
         if params is None:
             return None
-        return params.hum_range if params.hum_range in HUM_SPEEDS else None
+        return params.hum_range if params.hum_range in self.options else None
 
     async def async_select_option(self, option: str) -> None:
-        params = self.coordinator.fan_parameters
-        if params is None:
+        if option not in self.options:
+            _LOGGER.warning(
+                "QuietCool: humidity speed %r not supported on this fan", option
+            )
             return
-        if option not in HUM_SPEEDS:
-            _LOGGER.warning("QuietCool: unknown humidity speed: %r", option)
-            return
-        protocol = self.coordinator.fan_info.protocol
-        merged = {
-            "temp_h": params.temp_h,
-            "temp_m": params.temp_m,
-            "temp_l": params.temp_l,
-            "hum_h": params.hum_h,
-            "hum_l": params.hum_l,
-            "hum_range": option,
-        }
-        await self.coordinator.async_execute(
-            lambda client: api.set_temp_humidity(client, protocol=protocol, **merged)
-        )
-        await _maybe_reassert_th(self.coordinator)
-        self.coordinator.fan_parameters = dataclasses.replace(params, hum_range=option)
+        await self.coordinator.async_apply_smart_params(hum_range=option)
         self.async_write_ha_state()

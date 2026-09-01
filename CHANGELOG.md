@@ -1,5 +1,11 @@
 # Changelog
 
+### v0.2.19
+- Fix: **humidity smart-mode thresholds were mislabeled** — the device's `GetHum_H`/`GetHum_L` field names are the inverse of what they sound like. `GetHum_H` (factory 90%) is the **"Turn Fan Off"** cutout (the fan *stops* at/above it, checked first), not a turn-on trigger. Relabeled `High Humidity Threshold` → **Humidity Off Threshold**, and exposed the previously-missing **Humidity On Threshold** (`GetHum_L`, factory 70%; blank = disabled) so humidity-driven startup can be enabled from HA. Verified against CrazyCoder's OEM protocol docs, the QuietCool app help, and snyamathi/quietcool. Thanks [@evan](https://github.com/evan) ([#16](https://github.com/rwarner/ha-quietcool-ble/pull/16))
+- Feat: new **Humidity Fan Speed** select (`GetHum_Range`) — the speed the fan uses on humidity-driven runs (`Medium` offered only on 3-speed fans). Thanks [@evan](https://github.com/evan) ([#17](https://github.com/rwarner/ha-quietcool-ble/pull/17))
+- Feat: **Low Temp Threshold** max raised 90 → 115°F to expose the device's full supported range
+- Threshold and humidity-speed writes now re-assert TH mode in a single atomic BLE operation, so a change takes effect immediately without a second connection round-trip
+
 ### v0.2.18
 - Feat: **set the timer duration from Home Assistant** ([#15](https://github.com/rwarner/ha-quietcool-ble/issues/15)). New **Timer Hours** and **Timer Minutes** number entities write the fan's stored timer duration (via `SetTime`) without starting the fan. Turning the fan on now counts down from this duration instead of always forcing the firmware's 8-hour default — previously every HA turn-on reset the timer to 8h regardless of what the app had set. No more setting the duration in the QuietCool app and switching to Timer mode in HA
 
