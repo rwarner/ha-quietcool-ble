@@ -58,7 +58,7 @@ All supported controllers advertise over BLE with a name beginning with `ATTICFA
 ## Prerequisites
 
 - Home Assistant 2023.7 or newer
-- Bluetooth adapter on your HA host, or an ESPHome BT Proxy on the same network
+- A **connectable** Bluetooth path — a Bluetooth adapter on your HA host, or an [ESPHome Bluetooth Proxy](https://esphome.io/components/bluetooth_proxy.html) on the same network. It must support **active connections**: passive advertisement-only proxies (e.g. Shelly Bluetooth gateways) can relay broadcast sensors but **can't connect to the fan**, so it won't appear during setup
 - QuietCool fan powered on and within Bluetooth range during initial setup
 
 ## Installation
@@ -244,6 +244,7 @@ automation:
 - Ensure the fan is powered on
 - Check that your HA host has Bluetooth or an ESPHome BT proxy configured
 - Try moving a BT proxy closer to the fan
+- **Using a Shelly (or other passive) Bluetooth proxy?** Those only forward broadcast sensors (like BThome/temperature devices) — they **can't make the active connection this fan needs**, so it never shows up during setup even with the fan in pairing mode. Use an **ESPHome ESP32 Bluetooth Proxy** or a Bluetooth adapter on the HA host instead
 
 **Pairing failed:**
 - If using the physical button, **hold** it (don't just tap) until the light flashes, then click Submit in HA
