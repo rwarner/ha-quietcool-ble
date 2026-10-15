@@ -150,6 +150,27 @@ class FanState:
     remain_seconds: int = 0  # RemainHour*3600 + RemainMinute*60 + RemainSecond
 
 
+# Human-readable physical fan-speed labels (also the Fan Speed sensor's ENUM options).
+FAN_SPEED_OFF = "Off"
+_FAN_SPEED_LABELS = {
+    FanSpeed.HIGH: "High",
+    FanSpeed.MEDIUM: "Medium",
+    FanSpeed.LOW: "Low",
+}
+
+
+def fan_speed_label(state: FanState | None) -> str | None:
+    """Map a FanState to the physical speed label: Off / Low / Medium / High.
+
+    Returns "Off" whenever the blades aren't at a recognized running speed (idle,
+    or an unknown/absent range — e.g. smart mode active but not currently running).
+    Returns None only when no state has been read yet.
+    """
+    if state is None:
+        return None
+    return _FAN_SPEED_LABELS.get(state.range, FAN_SPEED_OFF)
+
+
 @dataclass(frozen=True, slots=True)
 class FanInfo:
     name: str

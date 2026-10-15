@@ -15,13 +15,14 @@ Native Bluetooth Low Energy integration for QuietCool attic and whole-house fans
 
 ## Supported Devices
 
-All QuietCool ESP32-based controllers that advertise over BLE with a name beginning with `ATTICFAN` (plus name-less revisions that advertise the `3atticfan` manufacturer-data signature):
+All QuietCool ESP32-based controllers that advertise over BLE with a name beginning with `ATTICFAN` or `SOLARFAN` (plus name-less revisions that advertise the `3atticfan` manufacturer-data signature):
 
 - AFG SMT PRO-2.0 Smart Attic Fan ✅ Hardware confirmed
 - AFG SMT ES-3.0 (3-speed) ✅ Hardware confirmed
 - QC ES-3100 Whole House Fan ✅ Hardware confirmed
 - AFG SMT ES-2.0
 - AFG SMT NR-A (2022 revision)
+- AFR SLR SMT-50W Solar Smart Fan (`SOLARFAN-*`) 🔲 discovery added, pairing/control unconfirmed
 
 ## Setup
 

@@ -28,7 +28,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import FanSpeed
+from . import api
 from .const import DOMAIN
 from .coordinator import QuietCoolBLECoordinator
 
@@ -94,16 +94,7 @@ class QuietCoolFanSpeedSensor(_QuietCoolSensorBase):
 
     @property
     def native_value(self) -> str | None:
-        if self.coordinator.fan_state is None:
-            return None
-        speed = self.coordinator.fan_state.range
-        if speed == FanSpeed.HIGH:
-            return "High"
-        if speed == FanSpeed.MEDIUM:
-            return "Medium"
-        if speed == FanSpeed.LOW:
-            return "Low"
-        return "Off"
+        return api.fan_speed_label(self.coordinator.fan_state)
 
 
 class QuietCoolTemperatureSensor(_QuietCoolSensorBase):

@@ -18,9 +18,10 @@ Native Bluetooth Low Energy integration for QuietCool attic and whole-house fans
 | QC ES-3100 Whole House Fan‡ | 3081 | Low / High | `ATTICFAN_*` | ✅ Hardware confirmed (firmware V4.1) |
 | AFG SMT ES-2.0 | Various | Low / High | `ATTICFAN_*` | 🔲 Protocol confirmed, untested |
 | AFG SMT NR-A (2022 revision) | Various | Low / High | `ATTICFAN_*` | 🔲 Protocol confirmed, untested |
+| AFR SLR SMT-50W Solar Smart Fan | 1119 | Low / High | `SOLARFAN-*` | 🔲 Discovery added, pairing/control unconfirmed |
 | Other ESP32-based QuietCool controllers | Various | Unknown | `ATTICFAN_*` | 🔲 Untested |
 
-All supported controllers advertise over BLE with a name beginning with `ATTICFAN`. Some revisions omit the BLE local name and instead advertise the raw manufacturer-specific signature `3atticfan` (company ID `0x6133`, payload prefix `tticfan`); these are recognized too and show as `QuietCool Fan (<address>)` until their real name is read over GATT.
+Supported controllers advertise over BLE with a name beginning with `ATTICFAN` (mains attic fans) or `SOLARFAN` (solar models — same app, expected to share the protocol; discovery is in place, full control not yet hardware-confirmed). Some revisions omit the BLE local name and instead advertise the raw manufacturer-specific signature `3atticfan` (company ID `0x6133`, payload prefix `tticfan`); these are recognized too and show as `QuietCool Fan (<address>)` until their real name is read over GATT.
 
 > ‡ **Whole house fans** work too, as long as they're driven by a QuietCool **Smart Attic Fan Controller**. The integration talks to the controller, not the fan, so any fan wired to a supported controller should work — the QC ES-3100 is the first confirmed whole-house setup ([#11](https://github.com/rwarner/ha-quietcool-ble/issues/11)).
 
@@ -158,7 +159,7 @@ The **Timer Hours** and **Timer Minutes** number entities set how long the fan r
 
 TH mode lets the fan controller automatically turn the fan on and off based on attic temperature and humidity. The thresholds are stored on the device and persist across power cycles and HA restarts.
 
-The **Fan Speed** sensor shows whether the blades are actually spinning (`Off` / `Low` / `Medium` / `High`). In TH mode the fan entity shows as "on" (control mode is active), but Fan Speed will read `Off` whenever the current conditions haven't triggered it yet.
+The **Fan Speed** sensor shows whether the blades are actually spinning (`Off` / `Low` / `Medium` / `High`). In TH mode the fan entity shows as "on" (control mode is active), but Fan Speed will read `Off` whenever the current conditions haven't triggered it yet. The same value is also exposed as a **`fan_speed` attribute on the fan entity**, so you can display the real running speed (including `Off`) directly on a Tile card via its *State Content* without adding a separate sensor.
 
 Select **TH** from the Mode dropdown to activate it. Adjust the threshold number entities to match your comfort targets — changes take effect immediately without restarting the fan.
 
@@ -338,6 +339,8 @@ Two protocol versions exist depending on firmware:
 ## Changelog
 
 Full release history is in [CHANGELOG.md](CHANGELOG.md). Most recent release:
+
+**v0.2.20** — discovers QuietCool solar fans advertising a `SOLARFAN-*` name (e.g. AFR SLR SMT-50W; pairing/control not yet hardware-confirmed), and adds a `fan_speed` attribute to the fan entity for Tile card display. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19)).
 
 **v0.2.19** — corrects the humidity smart-mode thresholds (the `GetHum_H` cutout was mislabeled as a turn-on trigger), exposes the missing **Humidity On Threshold** and a **Humidity Fan Speed** select, and raises the Low Temp max to 115°F. Thanks [@evan](https://github.com/evan) ([#16](https://github.com/rwarner/ha-quietcool-ble/pull/16), [#17](https://github.com/rwarner/ha-quietcool-ble/pull/17)).
 

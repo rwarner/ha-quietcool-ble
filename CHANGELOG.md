@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.2.20
+- Feat: **discover QuietCool solar fans** that advertise a `SOLARFAN-*` name (e.g. the AFR SLR SMT-50W), in addition to the usual `ATTICFAN_*` controllers. These use the same QuietCool Smart Control app, so they're expected to speak the same BLE protocol — if your solar fan pairs but something doesn't work, please open an issue with debug logs so we can adjust. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19))
+- Feat: the **fan entity now exposes a `fan_speed` attribute** (`Off` / `Low` / `Medium` / `High`) mirroring the Fan Speed sensor, so you can show the real running speed — including `Off` while in smart mode — as a Tile card's State Content without adding a separate sensor
+
 ### v0.2.19
 - Fix: **humidity smart-mode thresholds were mislabeled** — the device's `GetHum_H`/`GetHum_L` field names are the inverse of what they sound like. `GetHum_H` (factory 90%) is the **"Turn Fan Off"** cutout (the fan *stops* at/above it, checked first), not a turn-on trigger. Relabeled `High Humidity Threshold` → **Humidity Off Threshold**, and exposed the previously-missing **Humidity On Threshold** (`GetHum_L`, factory 70%; blank = disabled) so humidity-driven startup can be enabled from HA. Verified against CrazyCoder's OEM protocol docs, the QuietCool app help, and snyamathi/quietcool. Thanks [@evan](https://github.com/evan) ([#16](https://github.com/rwarner/ha-quietcool-ble/pull/16))
 - Feat: new **Humidity Fan Speed** select (`GetHum_Range`) — the speed the fan uses on humidity-driven runs (`Medium` offered only on 3-speed fans). Thanks [@evan](https://github.com/evan) ([#17](https://github.com/rwarner/ha-quietcool-ble/pull/17))

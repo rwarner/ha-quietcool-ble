@@ -40,6 +40,24 @@ class DiscoveryTests(unittest.TestCase):
         self.assertTrue(discovery.is_quietcool_advertisement(info))
         self.assertEqual(discovery.quietcool_display_name(info), "ATTICFAN_1234")
 
+    def test_solar_named_controller(self) -> None:
+        # Solar models advertise SOLARFAN-* instead of ATTICFAN_* (#19).
+        info = service_info(
+            name="SOLARFAN-787de106b2",
+            address="50:78:7D:E1:06:B2",
+            manufacturer_data={},
+        )
+        self.assertTrue(discovery.is_quietcool_advertisement(info))
+        self.assertEqual(
+            discovery.quietcool_display_name(info), "SOLARFAN-787de106b2"
+        )
+
+    def test_unrelated_named_device_rejected(self) -> None:
+        info = service_info(
+            name="MyFitnessBand", address="12:34:56:78:9A:BC", manufacturer_data={}
+        )
+        self.assertFalse(discovery.is_quietcool_advertisement(info))
+
     def test_mac_only_manufacturer_variant(self) -> None:
         info = service_info(
             name="11:22:33:44:55:66",

@@ -17,7 +17,10 @@ THREE_SPEED_FAN_TYPES: Final = frozenset({"THREE"})
 # BLE protocol identifiers
 SERVICE_UUID: Final = "000000ff-0000-1000-8000-00805f9b34fb"
 CHAR_UUID: Final = "0000ff01-0000-1000-8000-00805f9b34fb"
-BLE_NAME_PREFIX: Final = "ATTICFAN"
+# Local-name prefixes QuietCool controllers advertise. ATTICFAN = the mains attic
+# fans; SOLARFAN = the solar models (e.g. AFR SLR SMT-50W), same Smart Control app
+# and — pending confirmation on real hardware — the same BLE protocol (#19).
+BLE_NAME_PREFIXES: Final = ("ATTICFAN", "SOLARFAN")
 # Some controller revisions omit the BLE local name and instead advertise the
 # bytes ``3atticfan`` as manufacturer-specific data. BLE consumes the leading
 # little-endian ``3a`` as company ID 0x6133, leaving ``tticfan`` as the payload.

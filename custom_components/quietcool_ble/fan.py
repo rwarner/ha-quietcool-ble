@@ -201,6 +201,9 @@ class QuietCoolFanEntity(CoordinatorEntity[QuietCoolBLECoordinator], FanEntity):
         if self.coordinator.fan_state is None:
             return None
         attrs: dict[str, Any] = {
+            # Physical speed incl. "Off" (mirrors the Fan Speed sensor) so it can be
+            # shown directly as a Tile card's State Content without a separate sensor.
+            "fan_speed": api.fan_speed_label(self.coordinator.fan_state),
             "ble_mode": self.coordinator.fan_state.mode,
             "ble_range": self.coordinator.fan_state.range,
         }
