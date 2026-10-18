@@ -52,5 +52,26 @@ class FanSpeedLabelTests(unittest.TestCase):
         self.assertEqual(api.fan_speed_label(_state("whatever")), "Off")
 
 
+def _state_mode(mode):
+    return api.FanState(
+        mode=mode, range=None, temp_fahrenheit=80.0, humidity_percent=50.0
+    )
+
+
+class FanModeLabelTests(unittest.TestCase):
+    def test_none_state_returns_none(self) -> None:
+        self.assertIsNone(api.fan_mode_label(None))
+
+    def test_known_modes(self) -> None:
+        self.assertEqual(api.fan_mode_label(_state_mode(api.FanMode.IDLE)), "Idle")
+        self.assertEqual(api.fan_mode_label(_state_mode(api.FanMode.TIMER)), "Timer")
+        # "TH" (Thermostat+Humidity) displays as the friendlier "Smart".
+        self.assertEqual(api.fan_mode_label(_state_mode(api.FanMode.TH)), "Smart")
+        self.assertEqual(api.fan_mode_label(_state_mode("TH")), "Smart")
+
+    def test_unknown_mode_passes_through(self) -> None:
+        self.assertEqual(api.fan_mode_label(_state_mode("Bootloader")), "Bootloader")
+
+
 if __name__ == "__main__":
     unittest.main()

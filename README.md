@@ -136,7 +136,7 @@ If you don't have one of those, ignore the field and pair normally. Any string o
 | Entity | Type | Unit | Notes |
 |---|---|---|---|
 | Fan | `fan` | — | On/off, `Low` / `High` speed preset (plus `Medium` on 3-speed fans) |
-| Mode | `select` | — | `Idle` / `Timer` / `TH` (smart mode) |
+| Mode | `select` | — | `Idle` / `Timer` / `TH` (`TH` = Thermostat+Humidity smart mode; also exposed as a friendly `mode` attribute) |
 | Humidity Fan Speed | `select` | — | Speed used on humidity-driven runs (`Low` / `High`, plus `Medium` on 3-speed) |
 | Fan Speed | `sensor` | — | Physical speed: `Off` / `Low` / `Medium` / `High` |
 | Temperature | `sensor` | °F | Attic temp: `Temp_Sample / 10` |
@@ -159,7 +159,7 @@ The **Timer Hours** and **Timer Minutes** number entities set how long the fan r
 
 TH mode lets the fan controller automatically turn the fan on and off based on attic temperature and humidity. The thresholds are stored on the device and persist across power cycles and HA restarts.
 
-The **Fan Speed** sensor shows whether the blades are actually spinning (`Off` / `Low` / `Medium` / `High`). In TH mode the fan entity shows as "on" (control mode is active), but Fan Speed will read `Off` whenever the current conditions haven't triggered it yet. The same value is also exposed as a **`fan_speed` attribute on the fan entity**, so you can display the real running speed (including `Off`) directly on a Tile card via its *State Content* without adding a separate sensor.
+The **Fan Speed** sensor shows whether the blades are actually spinning (`Off` / `Low` / `Medium` / `High`). In TH mode the fan entity shows as "on" (control mode is active), but Fan Speed will read `Off` whenever the current conditions haven't triggered it yet. The same value is also exposed as a **`fan_speed` attribute on the fan entity**, so you can display the real running speed (including `Off`) directly on a Tile card via its *State Content* without adding a separate sensor. The operating mode is likewise available as a friendly **`mode` attribute** (`Idle` / `Timer` / `Smart`) for the same purpose.
 
 Select **TH** from the Mode dropdown to activate it. Adjust the threshold number entities to match your comfort targets — changes take effect immediately without restarting the fan.
 
@@ -339,6 +339,8 @@ Two protocol versions exist depending on firmware:
 ## Changelog
 
 Full release history is in [CHANGELOG.md](CHANGELOG.md). Most recent release:
+
+**v0.2.21** — adds a friendly `mode` attribute (`Idle` / `Timer` / `Smart`) to the fan entity for Tile card display (`TH` = the Thermostat+Humidity smart mode).
 
 **v0.2.20** — discovers QuietCool solar fans advertising a `SOLARFAN-*` name (e.g. AFR SLR SMT-50W; pairing/control not yet hardware-confirmed), and adds a `fan_speed` attribute to the fan entity for Tile card display. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19)).
 

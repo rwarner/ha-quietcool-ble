@@ -204,6 +204,9 @@ class QuietCoolFanEntity(CoordinatorEntity[QuietCoolBLECoordinator], FanEntity):
             # Physical speed incl. "Off" (mirrors the Fan Speed sensor) so it can be
             # shown directly as a Tile card's State Content without a separate sensor.
             "fan_speed": api.fan_speed_label(self.coordinator.fan_state),
+            # Friendly operating mode (Idle / Timer / Smart) for the same purpose;
+            # ble_mode keeps the raw device value ("TH") for automations/back-compat.
+            "mode": api.fan_mode_label(self.coordinator.fan_state),
             "ble_mode": self.coordinator.fan_state.mode,
             "ble_range": self.coordinator.fan_state.range,
         }

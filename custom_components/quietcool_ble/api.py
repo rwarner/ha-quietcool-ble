@@ -171,6 +171,26 @@ def fan_speed_label(state: FanState | None) -> str | None:
     return _FAN_SPEED_LABELS.get(state.range, FAN_SPEED_OFF)
 
 
+# Friendly operating-mode labels for display. The raw device value ("TH") stays the
+# entity state; this is only a human-readable label. "TH" = Thermostat+Humidity.
+_FAN_MODE_LABELS = {
+    FanMode.IDLE: "Idle",
+    FanMode.TIMER: "Timer",
+    FanMode.TH: "Smart",
+}
+
+
+def fan_mode_label(state: FanState | None) -> str | None:
+    """Map a FanState to a friendly operating-mode label: Idle / Timer / Smart.
+
+    Falls back to the raw mode string for any unrecognized mode. None only when no
+    state has been read yet.
+    """
+    if state is None:
+        return None
+    return _FAN_MODE_LABELS.get(state.mode, state.mode)
+
+
 @dataclass(frozen=True, slots=True)
 class FanInfo:
     name: str

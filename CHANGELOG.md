@@ -1,5 +1,8 @@
 # Changelog
 
+### v0.2.21
+- Feat: the fan entity now exposes a friendly **`mode` attribute** (`Idle` / `Timer` / `Smart`) so the operating mode can be shown on a Tile card's State Content without a separate entity (the raw value remains available as `ble_mode`). Note: the Mode dropdown still shows `TH` — QuietCool's own name for the Thermostat+Humidity smart mode — because relabeling the dropdown itself would either break automations that reference the `TH` state or fail HA validation; the `mode` attribute gives a friendly label without either downside
+
 ### v0.2.20
 - Feat: **discover QuietCool solar fans** that advertise a `SOLARFAN-*` name (e.g. the AFR SLR SMT-50W), in addition to the usual `ATTICFAN_*` controllers. These use the same QuietCool Smart Control app, so they're expected to speak the same BLE protocol — if your solar fan pairs but something doesn't work, please open an issue with debug logs so we can adjust. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19))
 - Feat: the **fan entity now exposes a `fan_speed` attribute** (`Off` / `Low` / `Medium` / `High`) mirroring the Fan Speed sensor, so you can show the real running speed — including `Off` while in smart mode — as a Tile card's State Content without adding a separate sensor
