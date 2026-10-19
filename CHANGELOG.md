@@ -1,5 +1,8 @@
 # Changelog
 
+### v0.2.22
+- Change: **removed solar-fan (`SOLARFAN-*`) discovery** added in v0.2.20. A GATT dump of an AFR SLR SMT-50W (thanks [@GnuGolightly](https://github.com/GnuGolightly)) confirmed the solar fans run **Bluetooth Mesh** (Mesh Proxy Service `0x1828`), not the vendor JSON-over-GATT protocol this integration speaks. They have no vendor characteristic to write to, so discovering them only led to a pairing flow that could never succeed. Supporting mesh would mean building a full mesh provisioner/proxy client (which Home Assistant and `bleak` don't provide) plus obtaining the network keys held by the QuietCool app, so it's out of scope. Mains `ATTICFAN_*` controllers are unaffected ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19))
+
 ### v0.2.21
 - Feat: the fan entity now exposes a friendly **`mode` attribute** (`Idle` / `Timer` / `Smart`) so the operating mode can be shown on a Tile card's State Content without a separate entity (the raw value remains available as `ble_mode`). Note: the Mode dropdown still shows `TH` — QuietCool's own name for the Thermostat+Humidity smart mode — because relabeling the dropdown itself would either break automations that reference the `TH` state or fail HA validation; the `mode` attribute gives a friendly label without either downside
 

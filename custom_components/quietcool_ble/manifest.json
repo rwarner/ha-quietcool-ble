@@ -7,10 +7,6 @@
       "connectable": true
     },
     {
-      "local_name": "SOLARFAN*",
-      "connectable": true
-    },
-    {
       "manufacturer_id": 24883,
       "manufacturer_data_start": [116, 116, 105, 99, 102, 97, 110],
       "connectable": true
@@ -23,5 +19,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/rwarner/ha-quietcool-ble/issues",
   "requirements": ["bleak-retry-connector>=3.0.0", "bluetooth-data-tools>=1.0.0"],
-  "version": "0.2.21"
+  "version": "0.2.22"
 }

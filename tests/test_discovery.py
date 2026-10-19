@@ -40,17 +40,15 @@ class DiscoveryTests(unittest.TestCase):
         self.assertTrue(discovery.is_quietcool_advertisement(info))
         self.assertEqual(discovery.quietcool_display_name(info), "ATTICFAN_1234")
 
-    def test_solar_named_controller(self) -> None:
-        # Solar models advertise SOLARFAN-* instead of ATTICFAN_* (#19).
+    def test_solar_named_controller_rejected(self) -> None:
+        # Solar models advertise SOLARFAN-* but run Bluetooth Mesh, not this
+        # vendor protocol, so they are intentionally not discovered (#19).
         info = service_info(
             name="SOLARFAN-787de106b2",
             address="50:78:7D:E1:06:B2",
             manufacturer_data={},
         )
-        self.assertTrue(discovery.is_quietcool_advertisement(info))
-        self.assertEqual(
-            discovery.quietcool_display_name(info), "SOLARFAN-787de106b2"
-        )
+        self.assertFalse(discovery.is_quietcool_advertisement(info))
 
     def test_unrelated_named_device_rejected(self) -> None:
         info = service_info(

@@ -18,10 +18,12 @@ Native Bluetooth Low Energy integration for QuietCool attic and whole-house fans
 | QC ES-3100 Whole House Fan‡ | 3081 | Low / High | `ATTICFAN_*` | ✅ Hardware confirmed (firmware V4.1) |
 | AFG SMT ES-2.0 | Various | Low / High | `ATTICFAN_*` | 🔲 Protocol confirmed, untested |
 | AFG SMT NR-A (2022 revision) | Various | Low / High | `ATTICFAN_*` | 🔲 Protocol confirmed, untested |
-| AFR SLR SMT-50W Solar Smart Fan | 1119 | Low / High | `SOLARFAN-*` | 🔲 Discovery added, pairing/control unconfirmed |
+| AFR SLR SMT-50W Solar Smart Fan | 1119 | — | `SOLARFAN-*` | ❌ Not supported (Bluetooth Mesh, [#19](https://github.com/rwarner/ha-quietcool-ble/issues/19)) |
 | Other ESP32-based QuietCool controllers | Various | Unknown | `ATTICFAN_*` | 🔲 Untested |
 
-Supported controllers advertise over BLE with a name beginning with `ATTICFAN` (mains attic fans) or `SOLARFAN` (solar models — same app, expected to share the protocol; discovery is in place, full control not yet hardware-confirmed). Some revisions omit the BLE local name and instead advertise the raw manufacturer-specific signature `3atticfan` (company ID `0x6133`, payload prefix `tticfan`); these are recognized too and show as `QuietCool Fan (<address>)` until their real name is read over GATT.
+Supported controllers advertise over BLE with a name beginning with `ATTICFAN` (mains attic fans). Some revisions omit the BLE local name and instead advertise the raw manufacturer-specific signature `3atticfan` (company ID `0x6133`, payload prefix `tticfan`); these are recognized too and show as `QuietCool Fan (<address>)` until their real name is read over GATT.
+
+> ❌ **Solar fans aren't supported.** The AFR SLR SMT-50W (`SOLARFAN-*`) runs **Bluetooth Mesh** instead of the JSON-over-GATT protocol the attic fans use, so it has no characteristic the integration can control. Supporting it would require a full Bluetooth Mesh provisioner/proxy client (which Home Assistant and `bleak` don't provide) plus the mesh network keys held by the QuietCool app. See [#19](https://github.com/rwarner/ha-quietcool-ble/issues/19).
 
 > ‡ **Whole house fans** work too, as long as they're driven by a QuietCool **Smart Attic Fan Controller**. The integration talks to the controller, not the fan, so any fan wired to a supported controller should work — the QC ES-3100 is the first confirmed whole-house setup ([#11](https://github.com/rwarner/ha-quietcool-ble/issues/11)).
 
@@ -340,9 +342,11 @@ Two protocol versions exist depending on firmware:
 
 Full release history is in [CHANGELOG.md](CHANGELOG.md). Most recent release:
 
+**v0.2.22** — removes the solar-fan (`SOLARFAN-*`) discovery added in v0.2.20: a GATT dump confirmed those fans run Bluetooth Mesh, not this vendor protocol, so discovery only led to a pairing flow that couldn't succeed. Mains `ATTICFAN_*` fans are unaffected. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19)).
+
 **v0.2.21** — adds a friendly `mode` attribute (`Idle` / `Timer` / `Smart`) to the fan entity for Tile card display (`TH` = the Thermostat+Humidity smart mode).
 
-**v0.2.20** — discovers QuietCool solar fans advertising a `SOLARFAN-*` name (e.g. AFR SLR SMT-50W; pairing/control not yet hardware-confirmed), and adds a `fan_speed` attribute to the fan entity for Tile card display. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19)).
+**v0.2.20** — adds a `fan_speed` attribute (`Off` / `Low` / `Medium` / `High`) to the fan entity for Tile card display, and (reverted in v0.2.22) added solar-fan discovery.
 
 **v0.2.19** — corrects the humidity smart-mode thresholds (the `GetHum_H` cutout was mislabeled as a turn-on trigger), exposes the missing **Humidity On Threshold** and a **Humidity Fan Speed** select, and raises the Low Temp max to 115°F. Thanks [@evan](https://github.com/evan) ([#16](https://github.com/rwarner/ha-quietcool-ble/pull/16), [#17](https://github.com/rwarner/ha-quietcool-ble/pull/17)).
 

@@ -1,11 +1,12 @@
 """QuietCool Bluetooth advertisement matching helpers.
 
 Most controllers advertise a BLE local name beginning with ``ATTICFAN`` (mains
-attic fans) or ``SOLARFAN`` (solar models). Some revisions omit the name entirely
-and instead broadcast the manufacturer-specific signature ``3atticfan`` (company
-ID 0x6133, payload prefix ``tticfan``); BlueZ then surfaces only the MAC address.
-These helpers recognise all variants and produce a sensible display name when
-only the address is available.
+attic fans). Some revisions omit the name entirely and instead broadcast the
+manufacturer-specific signature ``3atticfan`` (company ID 0x6133, payload prefix
+``tticfan``); BlueZ then surfaces only the MAC address. These helpers recognise
+both variants and produce a sensible display name when only the address is
+available. Solar models (``SOLARFAN-*``) are intentionally excluded: they run
+Bluetooth Mesh rather than this vendor protocol (#19).
 
 Credit: the manufacturer-data variant was reverse-engineered by
 [@viss](https://github.com/viss/ha-quietcool-ble).
@@ -24,7 +25,7 @@ from .const import (
 def is_quietcool_advertisement(service_info: Any) -> bool:
     """Return whether an advertisement matches a known QuietCool controller.
 
-    Matches an ``ATTICFAN``/``SOLARFAN`` local-name prefix or the ``tticfan``
+    Matches an ``ATTICFAN`` local-name prefix or the ``tticfan``
     manufacturer-data payload under company ID 0x6133.
     """
     name = getattr(service_info, "name", None)
