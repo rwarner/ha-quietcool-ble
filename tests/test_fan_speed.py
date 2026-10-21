@@ -73,5 +73,41 @@ class FanModeLabelTests(unittest.TestCase):
         self.assertEqual(api.fan_mode_label(_state_mode("Bootloader")), "Bootloader")
 
 
+class FanSpeedsForTypeTests(unittest.TestCase):
+    """The shared FanType -> speed-list gate used by both the fan presets and
+    the Humidity Fan Speed select (#20)."""
+
+    def test_three_speed(self) -> None:
+        self.assertEqual(
+            api.fan_speeds_for_type("THREE"),
+            [api.FanSpeed.LOW, api.FanSpeed.MEDIUM, api.FanSpeed.HIGH],
+        )
+
+    def test_single_speed_is_high_only(self) -> None:
+        # A single-speed ("ONE") fan exposes only High — no Low, no Medium.
+        self.assertEqual(api.fan_speeds_for_type("ONE"), [api.FanSpeed.HIGH])
+
+    def test_two_speed(self) -> None:
+        self.assertEqual(
+            api.fan_speeds_for_type("TWO"), [api.FanSpeed.LOW, api.FanSpeed.HIGH]
+        )
+
+    def test_unknown_and_missing_fall_back_to_low_high(self) -> None:
+        # Unknown/garbage values and a missing FanType (None) are never collapsed
+        # to one speed; they keep the safe Low/High default.
+        for fan_type in ("FOUR", "", "garbage", None):
+            self.assertEqual(
+                api.fan_speeds_for_type(fan_type),
+                [api.FanSpeed.LOW, api.FanSpeed.HIGH],
+                msg=f"fan_type={fan_type!r}",
+            )
+
+    def test_returns_a_fresh_list(self) -> None:
+        # Callers (e.g. the select's `options`) must not be able to mutate shared state.
+        first = api.fan_speeds_for_type("ONE")
+        first.append(api.FanSpeed.LOW)
+        self.assertEqual(api.fan_speeds_for_type("ONE"), [api.FanSpeed.HIGH])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -33,7 +33,14 @@ from enum import IntEnum, StrEnum
 
 from bleak import BleakClient
 
-from .const import CHAR_UUID, COMMAND_TIMEOUT, DISCONNECT_TIMEOUT, MAX_RECV_BUFFER
+from .const import (
+    CHAR_UUID,
+    COMMAND_TIMEOUT,
+    DISCONNECT_TIMEOUT,
+    MAX_RECV_BUFFER,
+    ONE_SPEED_FAN_TYPES,
+    THREE_SPEED_FAN_TYPES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -189,6 +196,20 @@ def fan_mode_label(state: FanState | None) -> str | None:
     if state is None:
         return None
     return _FAN_MODE_LABELS.get(state.mode, state.mode)
+
+
+def fan_speeds_for_type(fan_type: str | None) -> list[FanSpeed]:
+    """Ordered physical speeds a fan supports, per its firmware FanType.
+
+    THREE -> Low/Medium/High; ONE -> High only (#20); anything else — including
+    an unknown or missing FanType — -> Low/High. Single source of truth for the
+    fan preset list and the humidity-speed select so the two can never disagree.
+    """
+    if fan_type in THREE_SPEED_FAN_TYPES:
+        return [FanSpeed.LOW, FanSpeed.MEDIUM, FanSpeed.HIGH]
+    if fan_type in ONE_SPEED_FAN_TYPES:
+        return [FanSpeed.HIGH]
+    return [FanSpeed.LOW, FanSpeed.HIGH]
 
 
 @dataclass(frozen=True, slots=True)

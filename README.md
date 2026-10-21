@@ -342,6 +342,8 @@ Two protocol versions exist depending on firmware:
 
 Full release history is in [CHANGELOG.md](CHANGELOG.md). Most recent release:
 
+**v0.2.23** — single-speed fans (`FanType: ONE`) now expose only `High` instead of an incorrect Low/High, and a plain turn-on sends High. 2- and 3-speed fans are unchanged. Thanks [@eugsmiley](https://github.com/eugsmiley) ([#20](https://github.com/rwarner/ha-quietcool-ble/issues/20)).
+
 **v0.2.22** — removes the solar-fan (`SOLARFAN-*`) discovery added in v0.2.20: a GATT dump confirmed those fans run Bluetooth Mesh, not this vendor protocol, so discovery only led to a pairing flow that couldn't succeed. Mains `ATTICFAN_*` fans are unaffected. Thanks [@GnuGolightly](https://github.com/GnuGolightly) ([#19](https://github.com/rwarner/ha-quietcool-ble/issues/19)).
 
 **v0.2.21** — adds a friendly `mode` attribute (`Idle` / `Timer` / `Smart`) to the fan entity for Tile card display (`TH` = the Thermostat+Humidity smart mode).

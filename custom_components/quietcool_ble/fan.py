@@ -22,7 +22,7 @@ from homeassistant.util.percentage import (
 
 from . import api
 from .api import FanMode, FanSpeed
-from .const import DOMAIN, THREE_SPEED_FAN_TYPES
+from .const import DOMAIN
 from .coordinator import QuietCoolBLECoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +35,11 @@ _PRESET_TO_BLE: dict[str, str] = {
     PRESET_LOW: FanSpeed.LOW,
     PRESET_MEDIUM: FanSpeed.MEDIUM,
     PRESET_HIGH: FanSpeed.HIGH,
+}
+_BLE_TO_PRESET: dict[str, str] = {
+    FanSpeed.LOW: PRESET_LOW,
+    FanSpeed.MEDIUM: PRESET_MEDIUM,
+    FanSpeed.HIGH: PRESET_HIGH,
 }
 
 
@@ -89,16 +94,15 @@ class QuietCoolFanEntity(CoordinatorEntity[QuietCoolBLECoordinator], FanEntity):
     def preset_modes(self) -> list[str]:
         """Speed presets this fan exposes.
 
-        Medium is offered only when the firmware explicitly reports a known
-        3-speed FanType. A missing or unknown FanType — including failed
+        Derived from the shared api.fan_speeds_for_type gate: Medium only on a
+        known 3-speed FanType, just High on a known single-speed FanType ("ONE",
+        #20), and Low/High for a missing or unknown FanType — including failed
         parameter reads (fan_parameters is None) and older firmware that omits
-        the field — falls back to Low/High, so a 2-speed fan can never be shown
-        or sent MEDIUM.
+        the field. A fan is only collapsed to one speed when the firmware says so.
         """
         params = self.coordinator.fan_parameters
-        if params is not None and params.fan_type in THREE_SPEED_FAN_TYPES:
-            return [PRESET_LOW, PRESET_MEDIUM, PRESET_HIGH]
-        return [PRESET_LOW, PRESET_HIGH]
+        fan_type = params.fan_type if params is not None else None
+        return [_BLE_TO_PRESET[speed] for speed in api.fan_speeds_for_type(fan_type)]
 
     @property
     def preset_mode(self) -> str | None:
@@ -147,7 +151,10 @@ class QuietCoolFanEntity(CoordinatorEntity[QuietCoolBLECoordinator], FanEntity):
             preset_mode = percentage_to_ordered_list_item(
                 self.preset_modes, percentage
             )
-        speed = _PRESET_TO_BLE.get(preset_mode or PRESET_LOW, FanSpeed.LOW)
+        # A plain toggle (no preset) defaults to Low — except on a single-speed
+        # fan, which doesn't offer Low, so fall back to its sole speed, High (#20).
+        default_preset = PRESET_LOW if PRESET_LOW in self.preset_modes else PRESET_HIGH
+        speed = _PRESET_TO_BLE.get(preset_mode or default_preset, FanSpeed.LOW)
         protocol = self.coordinator.fan_info.protocol
         # Honor the configured timer duration (the Timer Hours/Minutes entities)
         # rather than forcing the firmware's 8h default on every turn-on.

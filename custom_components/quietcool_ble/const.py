@@ -14,6 +14,13 @@ PLATFORMS: Final = ["fan", "sensor", "select", "number"]
 # the two platforms can never disagree on what speeds a fan supports.
 THREE_SPEED_FAN_TYPES: Final = frozenset({"THREE"})
 
+# FanType tokens for single-speed fans (e.g. an IT-SMT-THRMST controller driving
+# a 1-speed fan with the DIP switches set to one speed, #20). These expose only a
+# single running speed — High — so Low is never offered or sent. As with the
+# 3-speed set this is an allowlist: unknown/missing FanType still falls back to
+# Low/High, so a fan is only collapsed to one speed when the firmware says so.
+ONE_SPEED_FAN_TYPES: Final = frozenset({"ONE"})
+
 # BLE protocol identifiers
 SERVICE_UUID: Final = "000000ff-0000-1000-8000-00805f9b34fb"
 CHAR_UUID: Final = "0000ff01-0000-1000-8000-00805f9b34fb"

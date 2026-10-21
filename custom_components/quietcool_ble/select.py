@@ -23,20 +23,13 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import api
 from .api import FanMode, FanSpeed
-from .const import DOMAIN, THREE_SPEED_FAN_TYPES
+from .const import DOMAIN
 from .coordinator import QuietCoolBLECoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 # All known operating modes.  The device may return others; we pass them through.
 FAN_MODES = [FanMode.IDLE, FanMode.TIMER, FanMode.TH]
-
-# Fan speeds selectable for humidity-driven runs. MEDIUM is offered only on
-# 3-speed fans — the same FanType gate the fan presets use — so a 2-speed fan
-# can never be shown or sent MEDIUM.
-_HUM_SPEEDS_2 = [FanSpeed.LOW, FanSpeed.HIGH]
-_HUM_SPEEDS_3 = [FanSpeed.LOW, FanSpeed.MEDIUM, FanSpeed.HIGH]
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -144,11 +137,11 @@ class QuietCoolHumSpeedSelectEntity(_QuietCoolSelectBase):
 
     @property
     def options(self) -> list[str]:
-        """Offer MEDIUM only on 3-speed fans, mirroring the fan preset gate."""
+        """Gate speeds by FanType via the shared api.fan_speeds_for_type helper,
+        so this select and the fan preset list can never disagree (#20)."""
         params = self.coordinator.fan_parameters
-        if params is not None and params.fan_type in THREE_SPEED_FAN_TYPES:
-            return _HUM_SPEEDS_3
-        return _HUM_SPEEDS_2
+        fan_type = params.fan_type if params is not None else None
+        return list(api.fan_speeds_for_type(fan_type))
 
     @property
     def current_option(self) -> str | None:
